@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Smartsheet.Api.Models;
 
-namespace CostcoAutomation.Helpers
+namespace csharp_read_write_sheet.Helpers
 {
     public static class RowExtensions
     {
@@ -34,22 +34,5 @@ namespace CostcoAutomation.Helpers
             var cell = row.GetCellForColumn(sheet, columnName);
             return cell?.Value == null ? "" : cell?.Value.ToString();
         }
-
-        public static List<Row> GetChildren(this Row row, Sheet sheet)
-        {
-            var result = new List<Row>();
-
-            foreach (var sheetRow in sheet.Rows)
-            {
-                if (sheetRow.ParentId == row.Id)
-                {
-                    result.Add(sheetRow);
-                }
-            }
-
-            return result;
-        }
-        
-        
     }
 }

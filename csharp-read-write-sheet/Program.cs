@@ -13,8 +13,9 @@ using System.Data;
 using System.Data.SqlClient;
 using csharp_read_write_sheet.Configuration;
 using csharp_read_write_sheet.Employee;
-using CostcoAutomation.Helpers;
 using csharp_read_write_sheet.Helper;
+using csharp_read_write_sheet.Helpers;
+
 
 namespace csharp_read_write_sheet
 {
@@ -71,7 +72,8 @@ namespace csharp_read_write_sheet
 
                 foreach (Column column in sheet.Columns)
                     columnMap.Add(column.Title, (long)column.Id);
-                    IList<EmployeeModel> items = dt.AsEnumerable().Select(row => new EmployeeModel  {
+                IList<EmployeeModel> items = dt.AsEnumerable().Select(row => new EmployeeModel
+                {
                     EmployeeId = row.Field<int>("EmployeeId"),
                     FirstName = row.Field<string>("FirstName"),
                     LastName = row.Field<string>("LastName"),
@@ -80,27 +82,18 @@ namespace csharp_read_write_sheet
                 }).ToList();
                 IEnumerable<EmployeeModel> employeeList = items;
                 listofemployees = new List<EmployeeModel>();
-                //for (int i = 0; i < dt.Rows.Count; i++)
-                //{
-                //    EmployeeModel employee = new EmployeeModel();
-                //    employee.EmployeeId = Convert.ToInt32(dt.Rows[i][CONFIGURATION_VALUE1_COLUMN]);
-                //    employee.FirstName = dt.Rows[i][CONFIGURATION_VALUE2_COLUMN].ToString();
-                //    employee.LastName = dt.Rows[i][CONFIGURATION_VALUE3_COLUMN].ToString();
-                //    employee.Email = dt.Rows[i][CONFIGURATION_VALUE4_COLUMN].ToString();
-                //    employee.Address = dt.Rows[i][CONFIGURATION_VALUE5_COLUMN].ToString();
-                //    listofemployees.Add(employee);
-                //}
                 listofemployees = (from DataRow dr in dt.Rows
-                               select new EmployeeModel()
-                               {
-                                   EmployeeId = Convert.ToInt32(dr[CONFIGURATION_VALUE1_COLUMN]),
-                                   FirstName = dr[CONFIGURATION_VALUE2_COLUMN].ToString(),
-                                   LastName = dr[CONFIGURATION_VALUE3_COLUMN].ToString(),
-                                   Email = dr[CONFIGURATION_VALUE4_COLUMN].ToString(),
-                                   Address = dr[CONFIGURATION_VALUE5_COLUMN].ToString()
-                               }).ToList();
+                                   select new EmployeeModel()
+                                   {
+                                       EmployeeId = Convert.ToInt32(dr[CONFIGURATION_VALUE1_COLUMN]),
+                                       FirstName = dr[CONFIGURATION_VALUE2_COLUMN].ToString(),
+                                       LastName = dr[CONFIGURATION_VALUE3_COLUMN].ToString(),
+                                       Email = dr[CONFIGURATION_VALUE4_COLUMN].ToString(),
+                                       Address = dr[CONFIGURATION_VALUE5_COLUMN].ToString()
+                                   }).ToList();
                 if (Insertupdateddelete == 1)
                 {
+
                     Cell[] newcell = new Cell[]
                     {
                         new Cell.AddCellBuilder(columnMap[CONFIGURATION_VALUE1_COLUMN],dt.Rows.Count+1).Build(),
@@ -118,11 +111,10 @@ namespace csharp_read_write_sheet
                     foreach (var emp in employeeList)
                     {
                         var accountRow = FindAccountRow(sheet, emp);
-                        var FirstNameColumnId = SheetExtension.GetColumnByTitle(sheet,CONFIGURATION_VALUE2_COLUMN,false)?.Id;
-                        var LastNameColumnId = SheetExtension.GetColumnByTitle(sheet,CONFIGURATION_VALUE3_COLUMN,false)?.Id;
-                        var EmailColumnId = SheetExtension.GetColumnByTitle(sheet,CONFIGURATION_VALUE4_COLUMN,false)?.Id;
-                        var AddressColumnId = SheetExtension.GetColumnByTitle(sheet,CONFIGURATION_VALUE5_COLUMN,false)?.Id;
-                        //long columnId = (long)column.Id;
+                        var FirstNameColumnId = SheetExtension.GetColumnByTitle(sheet, CONFIGURATION_VALUE2_COLUMN, false)?.Id;
+                        var LastNameColumnId = SheetExtension.GetColumnByTitle(sheet, CONFIGURATION_VALUE3_COLUMN, false)?.Id;
+                        var EmailColumnId = SheetExtension.GetColumnByTitle(sheet, CONFIGURATION_VALUE4_COLUMN, false)?.Id;
+                        var AddressColumnId = SheetExtension.GetColumnByTitle(sheet, CONFIGURATION_VALUE5_COLUMN, false)?.Id;
                         rows.Add(new Row
                         {
                             Id = accountRow.Id,
@@ -132,7 +124,7 @@ namespace csharp_read_write_sheet
                             {
                                 ColumnId = FirstNameColumnId,
                                 Value = emp.FirstName
-                                
+
                             },
                             new Cell
                             {
@@ -170,40 +162,31 @@ namespace csharp_read_write_sheet
                     //        allRows.RemoveAll(row => identifiersRemoved.Any(id => id == row.Id));
                     //}
                     //***************To Remove All the Rows****************
-                    var rows = new List<Row>();
-                    foreach (var emp in employeeList)
+                    try
                     {
-                        var accountRow = FindAccountRow(sheet, emp);
-                        var FirstNameColumnId = SheetExtension.GetColumnByTitle(sheet, CONFIGURATION_VALUE1_COLUMN, false)?.Id;
-                        rows.Add(new Row
+                        var sourceEmployeeIdList = employeeList.Select(x => x.EmployeeId).ToList();
+                        foreach (var row in sheet.Rows)
                         {
-                            Id = accountRow.Id,
-                            Cells = new List<Cell>
+                            int? targetEmployeeId = Convert.ToInt32(row.GetValueForColumnAsString(sheet, CONFIGURATION_VALUE1_COLUMN));
+                            if (targetEmployeeId != null)
                             {
-                                new Cell
+                                if (!sourceEmployeeIdList.Contains(targetEmployeeId.Value))
                                 {
-                                    ColumnId = FirstNameColumnId,
-                                    Value = emp.FirstName
-
-                                },
+                                    var rowsUpdated = smartsheet.SheetResources.RowResources.DeleteRows(sheet.Id.Value, new long[] { (long)row.Id }.ToList(), true).Count;
+                                    smartsheet.SheetResources.RowResources.DeleteRows(sheet.Id.Value, new long[] { (long)row.Id }.ToList(), true);
+                                }
                             }
-                        });
+                            else
+                                break;
+                        }
+                        Console.WriteLine("Done...");
+                        Console.ReadLine();
                     }
-                    //var rowsUpdated = smartsheet.SheetResources.RowResources.DeleteRows(sheet.Id.Value, ).Count;
-
-                    //List<int> first = new List<int>() { 1, 2, 3, 4, 5, 6, 7 };
-                    //List<int> second = new List<int>() { 6, 7, 8, 9 };
-                    //IEnumerable<int> firstDiffSecond = first.Except(second);
-                    
-                    //var sheetlist = sheet.Rows.ToList();
-                    //var datatablecount = dt.Rows.Count;
-                    //var sheetcount = sheet.Rows.Count;
-                    //if()
-                    //var list3 = listofemployees.Contains.Except(sheetlist).ToList();
-                    //  smartsheet.SheetResources.RowResources.DeleteRows(sheet.Id.Value, new long[] { 4207621315291012, 8144091986061188 }, true);
-                    Console.WriteLine("Done...");
-                    Console.ReadLine();
-
+                    catch (Exception ex)
+                    {
+                        Logger.LogException(ex, "Failed to Delet Row...");
+                        throw ex;
+                    }
                 }
                 else
                 {
@@ -236,7 +219,7 @@ namespace csharp_read_write_sheet
                 throw ex;
             }
         }
-        static Row FindAccountRow(Sheet sheet,EmployeeModel employee)
+        static Row FindAccountRow(Sheet sheet, EmployeeModel employee)
         {
             foreach (var row in sheet.Rows)
             {
@@ -251,6 +234,6 @@ namespace csharp_read_write_sheet
             }
             throw new ApplicationException($"Cannot find account row for {employee} in sheet {sheet.Id}");
         }
-       
+
     }
 }

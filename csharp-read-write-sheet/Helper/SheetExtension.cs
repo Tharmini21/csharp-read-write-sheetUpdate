@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace csharp_read_write_sheet.Helper
 {
-    public class SheetExtension
+    public static class SheetExtension
     {
-        public static Column GetColumnByTitle(Sheet sheet, string columnTitle, bool caseSensitive = false)
+        public static Column GetColumnByTitle(this Sheet sheet, string columnTitle, bool caseSensitive = false)
         {
             var column = sheet.Columns.FirstOrDefault(c => String.Equals(c.Title, columnTitle, caseSensitive ? StringComparison.CurrentCulture : StringComparison.CurrentCultureIgnoreCase));
             if (column == null)
