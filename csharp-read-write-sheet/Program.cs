@@ -93,7 +93,30 @@ namespace csharp_read_write_sheet
                                    }).ToList();
                 if (Insertupdateddelete == 1)
                 {
+                    var rowsToCreate = new List<Row>();
+                    //if (dt.Rows.Count!=sheet.Rows.Count)
+                    //{
+                        //foreach (var row in sheet.Rows)
+                        //{
+                        //    if (row.GetValueForColumnAsString(sheet, CONFIGURATION_VALUE1_COLUMN))
+                        //    {
+                        //        continue;
+                        //    }
 
+                        //    rowsToCreate.Add(this.BuildRow(row, currentYear, previousYear));
+                        //}
+                        //var sourceEmployeeList = employeeList.Select(x => x).ToList();
+                        //foreach (var row in sheet.Rows)
+                        //{
+                        //    //var targetEmployeeval = Convert.ToInt32(row.GetValueForColumnAsString(sheet, CONFIGURATION_VALUE1_COLUMN));
+                        //    var targetEmployeeval = (row.GetValueForColumnAsString(sheet, CONFIGURATION_VALUE1_COLUMN));
+                        //    if (targetEmployeeval != null)
+                        //    {
+                        //        if (!targetEmployeeval.Contains(sourceEmployeeList.AsEnumerable().Select(x=>x.ToString()))
+                        //        {
+                        //        }
+                        //    }
+                        //}
                     Cell[] newcell = new Cell[]
                     {
                         new Cell.AddCellBuilder(columnMap[CONFIGURATION_VALUE1_COLUMN],dt.Rows.Count+1).Build(),

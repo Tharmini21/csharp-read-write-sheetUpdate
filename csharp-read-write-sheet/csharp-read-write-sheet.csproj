@@ -102,15 +102,21 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Configuration\Config.cs" />
     <Compile Include="Configuration\ConfigDictionary.cs" />
+    <Compile Include="Configuration\ConfigItem.cs" />
+    <Compile Include="Configuration\ConfigList.cs" />
     <Compile Include="Configuration\ConfigManager.cs" />
     <Compile Include="DalClass.cs" />
     <Compile Include="Employee\EmployeeModel.cs" />
     <Compile Include="Helper\RowExtensions.cs" />
     <Compile Include="Helper\SheetExtension.cs" />
+    <Compile Include="Helper\SmartSheetClientExtension.cs" />
+    <Compile Include="Process\EmployeeCrud.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Logger.cs" />
+    <Compile Include="SheetConfiguration.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
