@@ -107,7 +107,6 @@
     <Compile Include="Configuration\ConfigItem.cs" />
     <Compile Include="Configuration\ConfigList.cs" />
     <Compile Include="Configuration\ConfigManager.cs" />
-    <Compile Include="DalClass.cs" />
     <Compile Include="Employee\EmployeeModel.cs" />
     <Compile Include="Helper\RowExtensions.cs" />
     <Compile Include="Helper\SheetExtension.cs" />
@@ -127,9 +126,6 @@
     <None Include="NLog.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="icons\logo.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
