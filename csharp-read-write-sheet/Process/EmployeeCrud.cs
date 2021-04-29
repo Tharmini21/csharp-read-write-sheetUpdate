@@ -27,7 +27,6 @@ namespace csharp_read_write_sheet
         {
             try
             {
-               // var settings = (NameValueCollection)ConfigurationManager.GetSection(Section);
                 ConfigSheetId = Convert.ToInt64(ConfigSheetId);
                 ConfigSheet = Client.GetSheet(ConfigSheetId);
                 ConfigManager = new ConfigManager(ConfigSheet);
@@ -103,6 +102,36 @@ namespace csharp_read_write_sheet
             Email = row.Field<string>("Email"),
             Address = row.Field<string>("Address")
         }).ToList();
+        public void CreateNewEmployeeDatas()
+        {
+            var sheet = Client.GetSheet(ConfigSheetId);
+            var rowsToCreate = new List<Row>();
+            DataTable dt = FetchEmployeeDatas();
+            var sourceEmployeeList = employeeList.Select(x => x).ToList();
+            if (dt.Rows.Count != sheet.Rows.Count)
+            {
+                foreach (var row in sheet.Rows)
+                {
+                    int? targetEmployeeval = Convert.ToInt32(row.GetValueForColumnAsString(sheet, ConfigManager.CONFIGURATION_VALUE1_COLUMN));
+                    if (targetEmployeeval != null)
+                    {
+                        if (!sourceEmployeeList.Any(a => a.EmployeeId == targetEmployeeval))
+                        {
+                            Cell[] newcell = new Cell[]
+                            {
+                                  new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE1_COLUMN],dt.Rows.Count+1).Build(),
+                                  new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE2_COLUMN],"CheckInsert").Build(),
+                                  new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE3_COLUMN],"Lst").Build(),
+                                  new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE4_COLUMN],"CheckInsert@gmail.com").Build(),
+                                  new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE5_COLUMN],"AbcStreet").Build(),
+                            };
+                            Row rowA = new Row.AddRowBuilder(null, true, null, null, null).SetCells(newcell).Build();
+                            Client.SheetResources.RowResources.AddRows(sheet.Id.Value, new Row[] { rowA });
+                        }
+                    }
+                }
+            }
+        }
         public void UpdateEmployeeDatas()
         {
             var sheet = Client.GetSheet(ConfigSheetId);
@@ -121,6 +150,7 @@ namespace csharp_read_write_sheet
                     var LastNameColumnId = sheet.GetColumnByTitle(ConfigManager.CONFIGURATION_VALUE3_COLUMN, false)?.Id;
                     var EmailColumnId = sheet.GetColumnByTitle(ConfigManager.CONFIGURATION_VALUE4_COLUMN, false)?.Id;
                     var AddressColumnId = sheet.GetColumnByTitle(ConfigManager.CONFIGURATION_VALUE5_COLUMN,false)?.Id;
+
                     rows.Add(new Row
                     {
                         Id = accountRow.Id,
@@ -333,6 +363,8 @@ namespace csharp_read_write_sheet
             var enddate = DateTime.Now.ToString(CultureInfo.InvariantCulture);
             var notes = $"{Process} complete. rows imported: {RowsLinked}";
            Logger.LogJobRun(startdate, enddate, notes, false);
+          
+            // Logger.LogJobRun(startTime, endTime, notes, false);
         }
     }
 }
