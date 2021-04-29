@@ -1,6 +1,11 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\csharp-read-write-sheet",
+    "\\csharp-read-write-sheet\\Configuration",
+    "\\csharp-read-write-sheet\\Helper",
+    "\\packages"
   ],
+  "SelectedNode": "\\csharp-read-write-sheet.sln",
   "PreviewInSolutionExplorer": false
 }

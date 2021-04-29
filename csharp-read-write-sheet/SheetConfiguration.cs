@@ -13,8 +13,6 @@ namespace csharp_read_write_sheet
     {
 
         private const string AUTH_TOKEN = "AccessToken";
-        // public static readonly string smartsheetAPIToken = ConfigurationManager.AppSettings["AccessToken"];
-
 
         string smartsheetAPIToken = ConfigurationManager.AppSettings["AccessToken"];
         Token token = new Token();
