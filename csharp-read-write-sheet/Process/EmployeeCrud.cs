@@ -22,7 +22,6 @@ namespace csharp_read_write_sheet
         private int RowsLinked;
 
         static Dictionary<string, long> columnMap = new Dictionary<string, long>();
-        static Dictionary<string, long> columnMapPMO = new Dictionary<string, long>();
         public EmployeeCrud()
         {
             try
