@@ -26,10 +26,7 @@ namespace csharp_read_write_sheet
         {
           var employeeprocess = new EmployeeCrud();
           Logger.ClearLogFileContents();
-<<<<<<< HEAD
-=======
         //  employeeprocess.CreateNewEmployeeDatas();
->>>>>>> e83a965f420befc6b88d4dba6e81e97847778d2c
           await employeeprocess.Run();
           return;
         }
