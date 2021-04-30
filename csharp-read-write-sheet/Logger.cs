@@ -12,17 +12,15 @@ using System.IO;
 
 namespace csharp_read_write_sheet
 {
-    public class Logger
+    
+    public static class Logger
     {
         private static readonly string AssemblyPath =
             System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-
         private static Sheet ErrorSheet;
         private static Sheet RunLogSheet;
         private static SmartsheetClient Client;
-
         private static string Process;
-
         private static readonly object Locker = new object();
 
         public static void LogException(Exception e, string message = "")
@@ -102,6 +100,65 @@ namespace csharp_read_write_sheet
                     }
                 }
             };
+        }
+
+        public static void InitErrorLog(long templateId, long errorFolderId)
+        {
+            var name = DateTime.Now.ToString("MMMM yyyy") + " - Error Log";
+
+            var folder = Client.FolderResources.GetFolder(errorFolderId, null);
+
+            if (folder.Sheets != null && folder.Sheets.Any(x => x.Name.Contains(name)))
+            {
+                var errorSheetId = folder.Sheets.FirstOrDefault(x => x.Name.Contains(name))?.Id;
+                ErrorSheet =
+                    Client.SheetResources.GetSheet((long)errorSheetId, null, null, null, null, null, null, null);
+            }
+            else
+            {
+                var containerDestination = new ContainerDestination
+                {
+                    NewName = name,
+                    DestinationId = errorFolderId,
+                    DestinationType = DestinationType.FOLDER,
+                };
+
+                var errorSheetId =
+                    Client.SheetResources.CopySheet(templateId, containerDestination, new[] { SheetCopyInclusion.DATA })?.Id;
+                ErrorSheet = Client.SheetResources.GetSheet((long)errorSheetId, null, null, null, null, null, null, null);
+            }
+        }
+
+        public static void InitRunLog(long templateId, long runFolderId)
+        {
+            var name = DateTime.Now.ToString("MMMM yyyy") + " - Run Log";
+
+            var folder = Client.FolderResources.GetFolder(runFolderId, new List<FolderInclusion>());
+
+            if (folder.Sheets != null && folder.Sheets.Any(x => x.Name.Contains(name)))
+            {
+                var runSheetId = folder.Sheets.FirstOrDefault(x => x.Name.Contains(name))?.Id;
+                RunLogSheet =
+                    Client.SheetResources.GetSheet((long)runSheetId, null, null, null, null, null, null, null);
+            }
+            else
+            {
+                var containerDestination = new ContainerDestination
+                {
+                    NewName = name,
+                    DestinationId = runFolderId,
+                    DestinationType = DestinationType.FOLDER,
+                };
+
+                var runSheetId =
+                    Client.SheetResources.CopySheet(templateId, containerDestination, new[] { SheetCopyInclusion.DATA })?.Id;
+                RunLogSheet = Client.SheetResources.GetSheet((long)runSheetId, null, null, null, null, null, null, null);
+            }
+        }
+        public static void InitLogging(SmartsheetClient client, SheetConfiguration automation)
+        {
+            Client = client;
+            Process = automation.GetType().Name;
         }
 
         public static void LogToConsole(string message)

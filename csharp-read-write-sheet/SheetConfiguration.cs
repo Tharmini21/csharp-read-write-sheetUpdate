@@ -13,7 +13,11 @@ namespace csharp_read_write_sheet
     {
 
         private const string AUTH_TOKEN = "AccessToken";
+        private const string ERROR_LOG_FOLDER = "Error Log Folder ID";
+        private const string ERROR_LOG_TEMPLATE = "Error Log Template ID";
 
+        private const string RUN_LOG_FOLDER = "Run Log Folder ID";
+        private const string RUN_LOG_TEMPLATE = "Run Log Template ID";
         string smartsheetAPIToken = ConfigurationManager.AppSettings["AccessToken"];
         Token token = new Token();
         private string AuthToken { get; set; }
@@ -31,13 +35,30 @@ namespace csharp_read_write_sheet
         public SheetConfiguration()
         {
             token.AccessToken = smartsheetAPIToken;
-            SmartsheetClient smartsheet = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
+           // SmartsheetClient smartsheet = new SmartsheetBuilder().SetAccessToken(token.AccessToken).Build();
             this.ConfigSheetId = Convert.ToInt64(ConfigurationManager.AppSettings["SheetId"]);
             this.AuthToken = ConfigurationManager.AppSettings[AUTH_TOKEN];
             Client = new SmartsheetBuilder().SetAccessToken(this.AuthToken).Build();
             Client.SheetResources.GetSheet(ConfigSheetId, null, null, null, null, null, null, null);
             StartTime = DateTime.Now;
             Clients = new Dictionary<SmartsheetClient, bool>();
+        }
+        protected void InitLogs(SheetConfiguration automation)
+        {
+            //set client and log
+            Logger.InitLogging(Client, automation);
+
+            //set error logs
+            var errorFolderId = Convert.ToInt64(this.ConfigManager.GetConfigItem(ERROR_LOG_FOLDER)?.Value1);
+            var errorTemplateId = Convert.ToInt64(this.ConfigManager.GetConfigItem(ERROR_LOG_TEMPLATE)?.Value1);
+            Logger.InitErrorLog(errorTemplateId, errorFolderId);
+
+            //set run logs
+            var runFolderId = Convert.ToInt64(this.ConfigManager.GetConfigItem(RUN_LOG_FOLDER)?.Value1);
+            var runTemplateId = Convert.ToInt64(this.ConfigManager.GetConfigItem(RUN_LOG_TEMPLATE)?.Value1);
+            Logger.InitRunLog(runTemplateId, runFolderId);
+
+
         }
     }
 }

@@ -22,6 +22,7 @@ namespace csharp_read_write_sheet
         private int RowsLinked;
 
         static Dictionary<string, long> columnMap = new Dictionary<string, long>();
+      
         public EmployeeCrud()
         {
             try
@@ -43,6 +44,7 @@ namespace csharp_read_write_sheet
             {
                 BulkInsertDbDataToSmartSheet();
                 FetchEmployeeDatas();
+                CreateNewEmployeeDatas();
                 UpdateEmployeeDatas();
                 DeleteEmployeeDatas();
             }
@@ -105,29 +107,33 @@ namespace csharp_read_write_sheet
         public void CreateNewEmployeeDatas()
         {
             var sheet = Client.GetSheet(ConfigSheetId);
-            var rowsToCreate = new List<Row>();
+            foreach (Column column in sheet.Columns)
+                columnMap.Add(column.Title, (long)column.Id);
             DataTable dt = FetchEmployeeDatas();
-            var sourceEmployeeList = employeeList.Select(x => x).ToList();
+            int targetEmployeeval;
+            List<int> sheetEmpIds = new List<int>();
+            for (int i = 0; i < sheet.Rows.Count; i++)
+            {
+                targetEmployeeval = Convert.ToInt32(sheet.Rows[i].GetValueForColumnAsString(sheet, ConfigManager.CONFIGURATION_VALUE1_COLUMN));
+                sheetEmpIds.Add(targetEmployeeval);
+            }
             if (dt.Rows.Count != sheet.Rows.Count)
             {
-                foreach (var row in sheet.Rows)
+                foreach (var dbrow in employeeList)
                 {
-                    int? targetEmployeeval = Convert.ToInt32(row.GetValueForColumnAsString(sheet, ConfigManager.CONFIGURATION_VALUE1_COLUMN));
-                    if (targetEmployeeval != null)
+
+                    if (!sheetEmpIds.Contains(dbrow.EmployeeId))
                     {
-                        if (!sourceEmployeeList.Any(a => a.EmployeeId == targetEmployeeval))
+                        Cell[] newcell = new Cell[]
                         {
-                            Cell[] newcell = new Cell[]
-                            {
-                                  new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE1_COLUMN],dt.Rows.Count+1).Build(),
-                                  new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE2_COLUMN],"CheckInsert").Build(),
-                                  new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE3_COLUMN],"Lst").Build(),
-                                  new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE4_COLUMN],"CheckInsert@gmail.com").Build(),
-                                  new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE5_COLUMN],"AbcStreet").Build(),
-                            };
-                            Row rowA = new Row.AddRowBuilder(null, true, null, null, null).SetCells(newcell).Build();
-                            Client.SheetResources.RowResources.AddRows(sheet.Id.Value, new Row[] { rowA });
-                        }
+                              new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE1_COLUMN],dbrow.EmployeeId).Build(),
+                              new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE2_COLUMN],dbrow.FirstName).Build(),
+                              new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE3_COLUMN],dbrow.LastName).Build(),
+                              new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE4_COLUMN],dbrow.Email).Build(),
+                              new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE5_COLUMN],dbrow.Address).Build(),
+                        };
+                        Row rowA = new Row.AddRowBuilder(null, true, null, null, null).SetCells(newcell).Build();
+                        Client.SheetResources.RowResources.AddRows(sheet.Id.Value, new Row[] { rowA });
                     }
                 }
             }
@@ -288,7 +294,7 @@ namespace csharp_read_write_sheet
             var endTime = DateTime.Now.ToString(CultureInfo.InvariantCulture);
             var notes = $"{Process} complete. rows imported: {RowsLinked}";
 
-            // Logger.LogJobRun(startTime, endTime, notes, false);
+            Logger.LogJobRun(startTime, endTime, notes, false);
         }
     }
 }
