@@ -103,7 +103,6 @@ namespace csharp_read_write_sheet
             Email = row.Field<string>("Email"),
             Address = row.Field<string>("Address")
         }).ToList();
-
         public void CreateNewEmployeeDatas()
         {
             var sheet = Client.GetSheet(ConfigSheetId);
@@ -148,10 +147,15 @@ namespace csharp_read_write_sheet
                 foreach (var emp in employeeList)
                 {
                     var accountRow = FindAccountRow(sheet, emp);
-                    var FirstNameColumnId = SheetExtension.GetColumnByTitle(sheet, ConfigManager.CONFIGURATION_VALUE2_COLUMN, false)?.Id;
-                    var LastNameColumnId = SheetExtension.GetColumnByTitle(sheet, ConfigManager.CONFIGURATION_VALUE3_COLUMN, false)?.Id;
-                    var EmailColumnId = SheetExtension.GetColumnByTitle(sheet, ConfigManager.CONFIGURATION_VALUE4_COLUMN, false)?.Id;
-                    var AddressColumnId = SheetExtension.GetColumnByTitle(sheet, ConfigManager.CONFIGURATION_VALUE5_COLUMN, false)?.Id;
+                    //var FirstNameColumnId = SheetExtension.GetColumnByTitle(sheet, ConfigManager.CONFIGURATION_VALUE2_COLUMN, false)?.Id;
+                    //var LastNameColumnId = SheetExtension.GetColumnByTitle(sheet, ConfigManager.CONFIGURATION_VALUE3_COLUMN, false)?.Id;
+                    //var EmailColumnId = SheetExtension.GetColumnByTitle(sheet, ConfigManager.CONFIGURATION_VALUE4_COLUMN, false)?.Id;
+                    //var AddressColumnId = SheetExtension.GetColumnByTitle(sheet, ConfigManager.CONFIGURATION_VALUE5_COLUMN, false)?.Id;
+                    var FirstNameColumnId = sheet.GetColumnByTitle(ConfigManager.CONFIGURATION_VALUE2_COLUMN, false)?.Id;
+                    var LastNameColumnId = sheet.GetColumnByTitle(ConfigManager.CONFIGURATION_VALUE3_COLUMN, false)?.Id;
+                    var EmailColumnId = sheet.GetColumnByTitle(ConfigManager.CONFIGURATION_VALUE4_COLUMN, false)?.Id;
+                    var AddressColumnId = sheet.GetColumnByTitle(ConfigManager.CONFIGURATION_VALUE5_COLUMN,false)?.Id;
+
                     rows.Add(new Row
                     {
                         Id = accountRow.Id,
@@ -193,6 +197,76 @@ namespace csharp_read_write_sheet
             }
           
         }
+
+        //public void CreateNewEmployeeDatas()
+        //{
+        //    var sheet = Client.GetSheet(ConfigSheetId);
+        //    var rowsToCreate = new List<Row>();
+        //    DataTable dt = FetchEmployeeDatas();
+
+        //    foreach (var account in sheet.Rows)
+        //    {
+        //        int? exists = Convert.ToInt32(sheet.Rows.Any(c => c.GetValueForColumnAsString(sheet, ConfigManager.CONFIGURATION_VALUE1_COLUMN) == account.Cells[0].ColumnId));
+        //        if (exists)
+        //        {
+        //            rowsToCreate.Add(account);
+        //        }
+        //    }
+
+        //    if (dt.Rows.Count != sheet.Rows.Count)
+        //    {
+        //        foreach (var emp in employeeList)
+        //        {
+        //            var accountRow = FindAccountRow(sheet, emp);
+        //        }
+        //        //foreach (var row in sheet.Rows)
+        //        //{
+        //        //    if (row.GetValueForColumnAsString(sheet, ConfigManager.CONFIGURATION_VALUE1_COLUMN))
+        //        //    {
+        //        //        continue;
+        //        //    }
+
+        //        //    //rowsToCreate.Add(this.BuildRow(row, currentYear, previousYear));
+        //        //}
+        //        //foreach(var row in dt.Rows)
+        //        //{
+        //        //    foreach (var s in sheet.Rows)
+        //        //    {
+        //        //        if(row!=s)
+        //        //        {
+        //        //            Console.WriteLine("true");
+        //        //        }
+        //        //    }
+        //        //}
+        //    }
+        //    // List<int> sourceEmployeeList = employeeList.Select(x => x.EmployeeId).ToList();
+        //    //List<int> = targetlist.Select(x=>x.)
+        //    //    //foreach (var row in sheet.Rows)
+        //    //    //{
+        //    //    //    //var targetEmployeeval = Convert.ToInt32(row.GetValueForColumnAsString(sheet, CONFIGURATION_VALUE1_COLUMN));
+        //    //    //    var targetEmployeeval = (row.GetValueForColumnAsString(sheet, CONFIGURATION_VALUE1_COLUMN));
+        //    //    //    if (targetEmployeeval != null)
+        //    //    //    {
+        //    //    //        if (!targetEmployeeval.Contains(sourceEmployeeList.AsEnumerable().Select(x=>x.ToString()))
+        //    //    //        {
+        //    //    //        }
+        //    //    //    }
+        //    //    //}
+        //    //List<int> newStudentsList = newStudents.Select(n => n.Id).ToList();
+        //    //List<int> oldStudentsList = oldStudents.Select(o => o.Id).ToList();
+
+        //    //var missingStudents = oldStudentsList.Except(newStudentsList).ToList();
+        //    //Cell[] newcell = new Cell[]
+        //    //{
+        //    //    new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE1_COLUMN],dt.Rows.Count+1).Build(),
+        //    //    new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE2_COLUMN],"CheckInsert").Build(),
+        //    //    new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE3_COLUMN],"Lst").Build(),
+        //    //    new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE4_COLUMN],"CheckInsert@gmail.com").Build(),
+        //    //    new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE5_COLUMN],"AbcStreet").Build(),
+        //    //};
+        //    //Row rowA = new Row.AddRowBuilder(null, true, null, null, null).SetCells(newcell).Build();
+        //    //Client.SheetResources.RowResources.AddRows(sheet.Id.Value, new Row[] { rowA });
+        //}
         public void DeleteEmployeeDatas()
         {
             //***************To Remove All the Rows****************
@@ -290,11 +364,12 @@ namespace csharp_read_write_sheet
         {
             Logger.LogToConsole($"{Process} complete");
 
-            var startTime = StartTime.ToString(CultureInfo.InvariantCulture);
-            var endTime = DateTime.Now.ToString(CultureInfo.InvariantCulture);
+            var startdate = StartTime.ToString(CultureInfo.InvariantCulture);
+            var enddate = DateTime.Now.ToString(CultureInfo.InvariantCulture);
             var notes = $"{Process} complete. rows imported: {RowsLinked}";
-
-            Logger.LogJobRun(startTime, endTime, notes, false);
+           Logger.LogJobRun(startdate, enddate, notes, false);
+          
+            // Logger.LogJobRun(startTime, endTime, notes, false);
         }
     }
 }
