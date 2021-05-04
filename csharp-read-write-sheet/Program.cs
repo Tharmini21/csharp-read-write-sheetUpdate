@@ -21,12 +21,10 @@ namespace csharp_read_write_sheet
 {
     class Program
     {
-       // private static Logger logger = LogManager.GetCurrentClassLogger();
         public static async Task Main(string[] args)
         {
           var employeeprocess = new EmployeeCrud();
           Logger.ClearLogFileContents();
-        //  employeeprocess.CreateNewEmployeeDatas();
           await employeeprocess.Run();
           return;
         }

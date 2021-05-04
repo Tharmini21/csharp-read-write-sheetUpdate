@@ -5,6 +5,7 @@ using csharp_read_write_sheet.Helpers;
 using Smartsheet.Api.Models;
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
@@ -19,6 +20,8 @@ namespace csharp_read_write_sheet
     {
         static string connectionString = ConfigurationManager.ConnectionStrings["myConnectionString"].ConnectionString;
         private const string Process = "Employee Crud";
+        private const string Section = "employeecrud";
+
         private int RowsLinked;
 
         static Dictionary<string, long> columnMap = new Dictionary<string, long>();
@@ -27,9 +30,15 @@ namespace csharp_read_write_sheet
         {
             try
             {
+
+                var settings = (NameValueCollection)ConfigurationManager.GetSection(Section);
                 ConfigSheetId = Convert.ToInt64(ConfigSheetId);
                 ConfigSheet = Client.GetSheet(ConfigSheetId);
+                Logger.ErrorSheet = Client.GetSheet(ConfigSheetId);
+                Logger.RunLogSheet = Client.GetSheet(ConfigSheetId);
                 ConfigManager = new ConfigManager(ConfigSheet);
+
+                this.InitLogs(this);
             }
             catch (Exception e)
             {
@@ -66,8 +75,9 @@ namespace csharp_read_write_sheet
                 Logger.LogJobRun(startTime, endTime, $"{Process} failed.", true);
                 throw e;
             }
-            LogJubRun();
+            LogJobRun();
             Logger.LogToConsole($"Done...");
+            Console.ReadLine();
 
         }
 
@@ -197,76 +207,6 @@ namespace csharp_read_write_sheet
             }
           
         }
-
-        //public void CreateNewEmployeeDatas()
-        //{
-        //    var sheet = Client.GetSheet(ConfigSheetId);
-        //    var rowsToCreate = new List<Row>();
-        //    DataTable dt = FetchEmployeeDatas();
-
-        //    foreach (var account in sheet.Rows)
-        //    {
-        //        int? exists = Convert.ToInt32(sheet.Rows.Any(c => c.GetValueForColumnAsString(sheet, ConfigManager.CONFIGURATION_VALUE1_COLUMN) == account.Cells[0].ColumnId));
-        //        if (exists)
-        //        {
-        //            rowsToCreate.Add(account);
-        //        }
-        //    }
-
-        //    if (dt.Rows.Count != sheet.Rows.Count)
-        //    {
-        //        foreach (var emp in employeeList)
-        //        {
-        //            var accountRow = FindAccountRow(sheet, emp);
-        //        }
-        //        //foreach (var row in sheet.Rows)
-        //        //{
-        //        //    if (row.GetValueForColumnAsString(sheet, ConfigManager.CONFIGURATION_VALUE1_COLUMN))
-        //        //    {
-        //        //        continue;
-        //        //    }
-
-        //        //    //rowsToCreate.Add(this.BuildRow(row, currentYear, previousYear));
-        //        //}
-        //        //foreach(var row in dt.Rows)
-        //        //{
-        //        //    foreach (var s in sheet.Rows)
-        //        //    {
-        //        //        if(row!=s)
-        //        //        {
-        //        //            Console.WriteLine("true");
-        //        //        }
-        //        //    }
-        //        //}
-        //    }
-        //    // List<int> sourceEmployeeList = employeeList.Select(x => x.EmployeeId).ToList();
-        //    //List<int> = targetlist.Select(x=>x.)
-        //    //    //foreach (var row in sheet.Rows)
-        //    //    //{
-        //    //    //    //var targetEmployeeval = Convert.ToInt32(row.GetValueForColumnAsString(sheet, CONFIGURATION_VALUE1_COLUMN));
-        //    //    //    var targetEmployeeval = (row.GetValueForColumnAsString(sheet, CONFIGURATION_VALUE1_COLUMN));
-        //    //    //    if (targetEmployeeval != null)
-        //    //    //    {
-        //    //    //        if (!targetEmployeeval.Contains(sourceEmployeeList.AsEnumerable().Select(x=>x.ToString()))
-        //    //    //        {
-        //    //    //        }
-        //    //    //    }
-        //    //    //}
-        //    //List<int> newStudentsList = newStudents.Select(n => n.Id).ToList();
-        //    //List<int> oldStudentsList = oldStudents.Select(o => o.Id).ToList();
-
-        //    //var missingStudents = oldStudentsList.Except(newStudentsList).ToList();
-        //    //Cell[] newcell = new Cell[]
-        //    //{
-        //    //    new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE1_COLUMN],dt.Rows.Count+1).Build(),
-        //    //    new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE2_COLUMN],"CheckInsert").Build(),
-        //    //    new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE3_COLUMN],"Lst").Build(),
-        //    //    new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE4_COLUMN],"CheckInsert@gmail.com").Build(),
-        //    //    new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE5_COLUMN],"AbcStreet").Build(),
-        //    //};
-        //    //Row rowA = new Row.AddRowBuilder(null, true, null, null, null).SetCells(newcell).Build();
-        //    //Client.SheetResources.RowResources.AddRows(sheet.Id.Value, new Row[] { rowA });
-        //}
         public void DeleteEmployeeDatas()
         {
             //***************To Remove All the Rows****************
@@ -317,6 +257,8 @@ namespace csharp_read_write_sheet
             {
                 if (sheet.Rows.Count==0 && (dt.Rows.Count != sheet.Rows.Count))
                 {
+                    foreach (Column column in sheet.Columns)
+                        columnMap.Add(column.Title, (long)column.Id);
                     Logger.LogToConsole($"Bulk Insert Started...");
                     Cell[] cellsA = null;
                     for (int i = dt.Rows.Count - 1; i >= 0; i--)
@@ -330,6 +272,10 @@ namespace csharp_read_write_sheet
                                     new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE3_COLUMN],dt.Rows[i][2]).Build(),
                                     new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE4_COLUMN],dt.Rows[i][3]).Build(),
                                     new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE5_COLUMN],dt.Rows[i][4]).Build(),
+                                    new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE6_COLUMN],"").Build(),
+                                    new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE7_COLUMN],"").Build(),
+                                    new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE8_COLUMN],"").Build(),
+                                    new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE9_COLUMN],"").Build(),
                             };
                         }
                         Row rowA = new Row.AddRowBuilder(true, null, null, null, null).SetCells(cellsA).Build();
@@ -360,16 +306,15 @@ namespace csharp_read_write_sheet
             }
             throw new ApplicationException($"Cannot find account row for {employee} in sheet {sheet.Id.Value}");
         }
-        private void LogJubRun()
+        private void LogJobRun()
         {
             Logger.LogToConsole($"{Process} complete");
 
             var startdate = StartTime.ToString(CultureInfo.InvariantCulture);
             var enddate = DateTime.Now.ToString(CultureInfo.InvariantCulture);
             var notes = $"{Process} complete. rows imported: {RowsLinked}";
-           Logger.LogJobRun(startdate, enddate, notes, false);
+            Logger.LogJobRun(startdate, enddate, notes, false);
           
-            // Logger.LogJobRun(startTime, endTime, notes, false);
         }
     }
 }
