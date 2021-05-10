@@ -24,6 +24,8 @@ namespace csharp_read_write_sheet
 
         private int RowsLinked;
         private int AccountBatchSize=3;
+        private int pagesize=10;
+        private int pagenum=0;
         static Dictionary<string, long> columnMap = new Dictionary<string, long>();
       
         public EmployeeCrud()
@@ -51,8 +53,8 @@ namespace csharp_read_write_sheet
             Logger.LogToConsole($"Starting {Process}");
             try
             {
-                BulkInsertDbDataToSmartSheet();
                 FetchEmployeeDatas();
+                BulkInsertDbDataToSmartSheet();
                 CreateNewEmployeeDatas();
                 UpdateEmployeeDatas();
                 DeleteEmployeeDatas();
@@ -88,10 +90,23 @@ namespace csharp_read_write_sheet
             {
                 try
                 {
+                    //int currentTotalCount = 0;
+                    //string querySelectforCount = "Select Count(*) from Employee";
+                    //while (true)
+                    //{
+                    //    // ... execute reader
+                    //    if (currentTotalCount==0)
+                    //        break;
+                    //}
                     //Logger.LogToConsole($"Started Fetching data from database...");
                     con.Open();
-                    SqlCommand cmd = new SqlCommand("Select * from Employee", con);
-                    SqlDataAdapter dataAdapter = new SqlDataAdapter(cmd.CommandText, con);
+                    // Select * from Employee order by EmployeeId FETCH FIRST AccountBatchSize ROWS ONLY
+                    //SqlCommand cmd1 = new SqlCommand("Select * from Employee order by EmployeeId ASC OFFSET 0 ROWS FETCH FIRST AccountBatchSize ROWS ONLY", con);
+                    //SqlDataAdapter dataAdapter = new SqlDataAdapter(cmd1.CommandText, con);
+                    int pageSize = 10;
+                    int pageNumber = 2;
+                    string querySelect = "Select * from Employee ORDER BY EmployeeId Asc OFFSET "+ pageSize +" * "+ pageNumber +" ROWS FETCH NEXT "+ pageSize +" ROWS ONLY";
+                    SqlDataAdapter dataAdapter = new SqlDataAdapter(querySelect, con);
                     dataAdapter.Fill(dt);
                    // Logger.LogToConsole($"Fetching data process compeleted...");
                 }
