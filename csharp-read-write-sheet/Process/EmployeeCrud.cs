@@ -24,15 +24,15 @@ namespace csharp_read_write_sheet
 
         private int RowsLinked;
         private int AccountBatchSize=3;
-        private int pagesize=10;
-        private int pagenum=0;
+        public static int Currentpagesize=10;
+        public static int currentPageNumber = 1;
+        public static int pageNumber = 0;
         static Dictionary<string, long> columnMap = new Dictionary<string, long>();
       
         public EmployeeCrud()
         {
             try
             {
-
                 var settings = (NameValueCollection)ConfigurationManager.GetSection(Section);
                 ConfigSheetId = Convert.ToInt64(ConfigSheetId);
                 ConfigSheet = Client.GetSheet(ConfigSheetId);
@@ -53,11 +53,17 @@ namespace csharp_read_write_sheet
             Logger.LogToConsole($"Starting {Process}");
             try
             {
-                FetchEmployeeDatas();
+               // FetchEmployeeDatas();
                 BulkInsertDbDataToSmartSheet();
                 CreateNewEmployeeDatas();
                 UpdateEmployeeDatas();
                 DeleteEmployeeDatas();
+                if (pageNumber > 0)
+                {
+                    FetchEmployeeDatas();
+                    await Run();
+                }
+             
             }
             catch (Exception e)
             {
@@ -82,7 +88,7 @@ namespace csharp_read_write_sheet
             Console.ReadLine();
 
         }
-
+        
         public static DataTable FetchEmployeeDatas()
         {
             DataTable dt = new DataTable();
@@ -90,25 +96,30 @@ namespace csharp_read_write_sheet
             {
                 try
                 {
-                    //int currentTotalCount = 0;
-                    //string querySelectforCount = "Select Count(*) from Employee";
-                    //while (true)
-                    //{
-                    //    // ... execute reader
-                    //    if (currentTotalCount==0)
-                    //        break;
-                    //}
-                    //Logger.LogToConsole($"Started Fetching data from database...");
                     con.Open();
-                    // Select * from Employee order by EmployeeId FETCH FIRST AccountBatchSize ROWS ONLY
-                    //SqlCommand cmd1 = new SqlCommand("Select * from Employee order by EmployeeId ASC OFFSET 0 ROWS FETCH FIRST AccountBatchSize ROWS ONLY", con);
-                    //SqlDataAdapter dataAdapter = new SqlDataAdapter(cmd1.CommandText, con);
-                    int pageSize = 10;
-                    int pageNumber = 2;
-                    string querySelect = "Select * from Employee ORDER BY EmployeeId Asc OFFSET "+ pageSize +" * "+ pageNumber +" ROWS FETCH NEXT "+ pageSize +" ROWS ONLY";
+                    SqlCommand cmd = new SqlCommand("SELECT COUNT(*) FROM Employee", con);
+                    int totalcount = (Int32)cmd.ExecuteScalar();
+                    //int pageNumber = 0;
+                    var totalPages = (int)Math.Ceiling((decimal)totalcount / (decimal)Currentpagesize);
+                    
+                    // string querySelect = "Select * from Employee ORDER BY EmployeeId Asc OFFSET "+ pageSize +" * "+ pageNumber +" ROWS FETCH NEXT "+ pageSize +" ROWS ONLY";
+                   // string querySelect = "Select * from Employee ORDER BY EmployeeId Asc OFFSET "+ Currentpagesize + " * "+ currentPageNumber + " ROWS FETCH NEXT "+ Currentpagesize + " ROWS ONLY";
+                    string querySelect = "Select * from Employee ORDER BY EmployeeId Asc OFFSET "+ Currentpagesize + " * "+ pageNumber + " ROWS FETCH NEXT "+ Currentpagesize + " ROWS ONLY";
+                    //Currentpagesize = totalcount - Currentpagesize;
+                    currentPageNumber = currentPageNumber + pageNumber;
+                    if (currentPageNumber <= 1)
+                    {
+                        currentPageNumber = 1;
+                        pageNumber = currentPageNumber;
+                    }
+                    else if (currentPageNumber > totalPages)
+                    {
+                        currentPageNumber = totalPages;
+                        pageNumber = currentPageNumber;
+                    }
+                    //pageNumber = currentPageNumber;
                     SqlDataAdapter dataAdapter = new SqlDataAdapter(querySelect, con);
                     dataAdapter.Fill(dt);
-                   // Logger.LogToConsole($"Fetching data process compeleted...");
                 }
                 catch (Exception ex)
                 {
@@ -120,7 +131,8 @@ namespace csharp_read_write_sheet
             }
             return dt;
         }
-        IEnumerable<EmployeeModel> employeeList = FetchEmployeeDatas().AsEnumerable().Select(row => new EmployeeModel
+
+        static IEnumerable<EmployeeModel> employeeList = FetchEmployeeDatas().AsEnumerable().Select(row => new EmployeeModel
         {
             EmployeeId = row.Field<int>("EmployeeId"),
             FirstName = row.Field<string>("FirstName"),
@@ -128,12 +140,32 @@ namespace csharp_read_write_sheet
             Email = row.Field<string>("Email"),
             Address = row.Field<string>("Address")
         }).ToList();
+        //private static readonly IEnumerable<EmployeeModel> employeeList1 = employeeList;
+        DataTable dt = ConvertToDataTable(employeeList);
+        //DataTable dt = ConvertToDataTable(EmployeeCrud.employeeList);
+
+        public static DataTable ConvertToDataTable(IEnumerable<EmployeeModel> source)
+        {
+            var props = typeof(EmployeeModel).GetProperties();
+
+            var dt = new DataTable();
+            dt.Columns.AddRange(
+              props.Select(p => new DataColumn(p.Name, p.PropertyType)).ToArray()
+            );
+
+            source.ToList().ForEach(
+              i => dt.Rows.Add(props.Select(p => p.GetValue(i, null)).ToArray())
+            );
+
+            return dt;
+        }
+
         public void CreateNewEmployeeDatas()
         {
             var sheet = Client.GetSheet(ConfigSheetId);
             foreach (Column column in sheet.Columns)
                 columnMap.Add(column.Title, (long)column.Id);
-            DataTable dt = FetchEmployeeDatas();
+            //DataTable dt = FetchEmployeeDatas();
             int targetEmployeeval;
             List<int> sheetEmpIds = new List<int>();
             var accountsToCreate = new List<EmployeeModel>();
@@ -146,20 +178,8 @@ namespace csharp_read_write_sheet
             {
                 foreach (var dbrow in employeeList)
                 {
-
                     if (!sheetEmpIds.Contains(dbrow.EmployeeId))
                     {
-                        //Cell[] newcell = new Cell[]
-                        //{
-                        //      new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE1_COLUMN],dbrow.EmployeeId).Build(),
-                        //      new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE2_COLUMN],dbrow.FirstName).Build(),
-                        //      new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE3_COLUMN],dbrow.LastName).Build(),
-                        //      new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE4_COLUMN],dbrow.Email).Build(),
-                        //      new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE5_COLUMN],dbrow.Address).Build(),
-                        //};
-                        //Row rowA = new Row.AddRowBuilder(null, true, null, null, null).SetCells(newcell).Build();
-                        //Client.SheetResources.RowResources.AddRows(sheet.Id.Value, new Row[] { rowA });
-
                         accountsToCreate.Add(dbrow);
                     }
                 }
@@ -211,10 +231,6 @@ namespace csharp_read_write_sheet
                 foreach (var emp in employeeList)
                 {
                     var accountRow = FindAccountRow(sheet, emp);
-                    //var FirstNameColumnId = SheetExtension.GetColumnByTitle(sheet, ConfigManager.CONFIGURATION_VALUE2_COLUMN, false)?.Id;
-                    //var LastNameColumnId = SheetExtension.GetColumnByTitle(sheet, ConfigManager.CONFIGURATION_VALUE3_COLUMN, false)?.Id;
-                    //var EmailColumnId = SheetExtension.GetColumnByTitle(sheet, ConfigManager.CONFIGURATION_VALUE4_COLUMN, false)?.Id;
-                    //var AddressColumnId = SheetExtension.GetColumnByTitle(sheet, ConfigManager.CONFIGURATION_VALUE5_COLUMN, false)?.Id;
                     var FirstNameColumnId = sheet.GetColumnByTitle(ConfigManager.CONFIGURATION_VALUE2_COLUMN, false)?.Id;
                     var LastNameColumnId = sheet.GetColumnByTitle(ConfigManager.CONFIGURATION_VALUE3_COLUMN, false)?.Id;
                     var EmailColumnId = sheet.GetColumnByTitle(ConfigManager.CONFIGURATION_VALUE4_COLUMN, false)?.Id;
@@ -306,7 +322,7 @@ namespace csharp_read_write_sheet
         public void BulkInsertDbDataToSmartSheet()
         {
             var sheet = Client.GetSheet(ConfigSheetId);
-            DataTable dt = FetchEmployeeDatas();
+            //DataTable dt = FetchEmployeeDatas();
             try
             {
                 if (sheet.Rows.Count==0 && (dt.Rows.Count != sheet.Rows.Count))
@@ -326,10 +342,6 @@ namespace csharp_read_write_sheet
                                     new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE3_COLUMN],dt.Rows[i][2]).Build(),
                                     new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE4_COLUMN],dt.Rows[i][3]).Build(),
                                     new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE5_COLUMN],dt.Rows[i][4]).Build(),
-                                    //new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE6_COLUMN],"").Build(),
-                                    //new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE7_COLUMN],"").Build(),
-                                    //new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE8_COLUMN],"").Build(),
-                                    //new Cell.AddCellBuilder(columnMap[ConfigManager.CONFIGURATION_VALUE9_COLUMN],"").Build(),
                             };
                         }
                         Row rowA = new Row.AddRowBuilder(true, null, null, null, null).SetCells(cellsA).Build();
