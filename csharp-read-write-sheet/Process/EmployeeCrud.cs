@@ -27,6 +27,9 @@ namespace csharp_read_write_sheet
         public static int Currentpagesize=10;
         public static int currentPageNumber = 1;
         public static int pageNumber = 0;
+       // public static DataTable dt;
+        public static bool Processflag = false;
+        //public static IEnumerable<EmployeeModel> employeeList;
         static Dictionary<string, long> columnMap = new Dictionary<string, long>();
       
         public EmployeeCrud()
@@ -39,7 +42,6 @@ namespace csharp_read_write_sheet
                 Logger.ErrorSheet = Client.GetSheet(ConfigSheetId);
                 Logger.RunLogSheet = Client.GetSheet(ConfigSheetId);
                 ConfigManager = new ConfigManager(ConfigSheet);
-
                 this.InitLogs(this);
             }
             catch (Exception e)
@@ -50,17 +52,33 @@ namespace csharp_read_write_sheet
 
         public async Task Run()
         {
-            Logger.LogToConsole($"Starting {Process}");
+            Logger.LogToConsole($"Starting {Process} ,Start Process Time: {DateTime.UtcNow}");
             try
             {
-               // FetchEmployeeDatas();
-                BulkInsertDbDataToSmartSheet();
+                //FetchEmployeeDatas();
+               // BulkInsertDbDataToSmartSheet();
                 CreateNewEmployeeDatas();
                 UpdateEmployeeDatas();
                 DeleteEmployeeDatas();
-                if (pageNumber > 0)
+                Processflag = true;
+                dt = null;
+                employeeList = null;
+                //if (pageNumber > 0)
+                if (Processflag == true)
                 {
-                    FetchEmployeeDatas();
+                    //if (employeeList == null)
+                    //{
+                        dt = FetchEmployeeDatas();
+                        //IEnumerable<EmployeeModel> employeeList = dt.AsEnumerable().Select(row => new EmployeeModel
+                        //{
+                        //    EmployeeId = row.Field<int>("EmployeeId"),
+                        //    FirstName = row.Field<string>("FirstName"),
+                        //    LastName = row.Field<string>("LastName"),
+                        //    Email = row.Field<string>("Email"),
+                        //    Address = row.Field<string>("Address")
+                        //}).ToList();
+                        //dt = ConvertToDataTable(employeeList);
+                    //}
                     await Run();
                 }
              
@@ -91,7 +109,7 @@ namespace csharp_read_write_sheet
         
         public static DataTable FetchEmployeeDatas()
         {
-            DataTable dt = new DataTable();
+            DataTable data = new DataTable();
             using (SqlConnection con = new SqlConnection(connectionString))
             {
                 try
@@ -99,27 +117,27 @@ namespace csharp_read_write_sheet
                     con.Open();
                     SqlCommand cmd = new SqlCommand("SELECT COUNT(*) FROM Employee", con);
                     int totalcount = (Int32)cmd.ExecuteScalar();
-                    //int pageNumber = 0;
                     var totalPages = (int)Math.Ceiling((decimal)totalcount / (decimal)Currentpagesize);
-                    
-                    // string querySelect = "Select * from Employee ORDER BY EmployeeId Asc OFFSET "+ pageSize +" * "+ pageNumber +" ROWS FETCH NEXT "+ pageSize +" ROWS ONLY";
-                   // string querySelect = "Select * from Employee ORDER BY EmployeeId Asc OFFSET "+ Currentpagesize + " * "+ currentPageNumber + " ROWS FETCH NEXT "+ Currentpagesize + " ROWS ONLY";
+                    currentPageNumber = currentPageNumber + pageNumber;
+                    if (Processflag == true)
+                    {
+                        if (currentPageNumber <= 1)
+                        {
+                            currentPageNumber = 1;
+                            pageNumber = currentPageNumber;
+
+                        }
+                        else if (currentPageNumber > totalPages)
+                        {
+                            currentPageNumber = totalPages;
+                            pageNumber = currentPageNumber;
+                        }
+                    }
                     string querySelect = "Select * from Employee ORDER BY EmployeeId Asc OFFSET "+ Currentpagesize + " * "+ pageNumber + " ROWS FETCH NEXT "+ Currentpagesize + " ROWS ONLY";
                     //Currentpagesize = totalcount - Currentpagesize;
-                    currentPageNumber = currentPageNumber + pageNumber;
-                    if (currentPageNumber <= 1)
-                    {
-                        currentPageNumber = 1;
-                        pageNumber = currentPageNumber;
-                    }
-                    else if (currentPageNumber > totalPages)
-                    {
-                        currentPageNumber = totalPages;
-                        pageNumber = currentPageNumber;
-                    }
-                    //pageNumber = currentPageNumber;
+                    
                     SqlDataAdapter dataAdapter = new SqlDataAdapter(querySelect, con);
-                    dataAdapter.Fill(dt);
+                    dataAdapter.Fill(data);
                 }
                 catch (Exception ex)
                 {
@@ -127,11 +145,12 @@ namespace csharp_read_write_sheet
                     Logger.LogException(ex, message);
                     throw new ApplicationException(message, ex);
                 }
-
             }
-            return dt;
+            
+            return data;
         }
 
+        
         static IEnumerable<EmployeeModel> employeeList = FetchEmployeeDatas().AsEnumerable().Select(row => new EmployeeModel
         {
             EmployeeId = row.Field<int>("EmployeeId"),
@@ -140,10 +159,8 @@ namespace csharp_read_write_sheet
             Email = row.Field<string>("Email"),
             Address = row.Field<string>("Address")
         }).ToList();
-        //private static readonly IEnumerable<EmployeeModel> employeeList1 = employeeList;
-        DataTable dt = ConvertToDataTable(employeeList);
-        //DataTable dt = ConvertToDataTable(EmployeeCrud.employeeList);
 
+        DataTable dt = ConvertToDataTable(employeeList);
         public static DataTable ConvertToDataTable(IEnumerable<EmployeeModel> source)
         {
             var props = typeof(EmployeeModel).GetProperties();
@@ -163,8 +180,6 @@ namespace csharp_read_write_sheet
         public void CreateNewEmployeeDatas()
         {
             var sheet = Client.GetSheet(ConfigSheetId);
-            foreach (Column column in sheet.Columns)
-                columnMap.Add(column.Title, (long)column.Id);
             //DataTable dt = FetchEmployeeDatas();
             int targetEmployeeval;
             List<int> sheetEmpIds = new List<int>();
@@ -176,6 +191,8 @@ namespace csharp_read_write_sheet
             }
             if (dt.Rows.Count != sheet.Rows.Count)
             {
+                foreach (Column column in sheet.Columns)
+                    columnMap.Add(column.Title, (long)column.Id);
                 foreach (var dbrow in employeeList)
                 {
                     if (!sheetEmpIds.Contains(dbrow.EmployeeId))
@@ -194,6 +211,11 @@ namespace csharp_read_write_sheet
                         var rows = intakeRows.Take(takeCount).ToList();
 
                         var importedRows = Client.SheetResources.RowResources.AddRows(sheet.Id.Value, rows);
+
+                        RowWrapper rowWrapper = new RowWrapper.InsertRowsBuilder().SetRows(rows).SetToBottom(true).Build();
+
+                       // smartsheet.Sheets().Rows().InsertRows(sheet.Id.Value, rowWrapper);
+                       //sheet.Sheets().Rows().InsertRows(sheet.Id.Value, rowWrapper);
 
                         Logger.LogToConsole($"Imported {rows.Count} rows to {sheet.Name}");
 
@@ -374,7 +396,7 @@ namespace csharp_read_write_sheet
         }
         private void LogJobRun()
         {
-            Logger.LogToConsole($"{Process} complete");
+            Logger.LogToConsole($"{Process} complete,End Process Time: {DateTime.UtcNow}");
 
             var startdate = StartTime.ToString(CultureInfo.InvariantCulture);
             var enddate = DateTime.Now.ToString(CultureInfo.InvariantCulture);
