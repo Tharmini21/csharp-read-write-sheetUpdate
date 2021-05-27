@@ -23,12 +23,13 @@ namespace csharp_read_write_sheet
         private const string Section = "employeecrud";
 
         private int RowsLinked;
-        private int AccountBatchSize=3;
+        private int AccountBatchSize=10;
         public static int Currentpagesize=10;
         public static int currentPageNumber = 1;
         public static int pageNumber = 0;
        // public static DataTable dt;
         public static bool Processflag = false;
+       //// IEnumerable<EmployeeModel> employeeList;
         //public static IEnumerable<EmployeeModel> employeeList;
         static Dictionary<string, long> columnMap = new Dictionary<string, long>();
       
@@ -68,16 +69,16 @@ namespace csharp_read_write_sheet
                 {
                     //if (employeeList == null)
                     //{
-                        dt = FetchEmployeeDatas();
-                        //IEnumerable<EmployeeModel> employeeList = dt.AsEnumerable().Select(row => new EmployeeModel
-                        //{
-                        //    EmployeeId = row.Field<int>("EmployeeId"),
-                        //    FirstName = row.Field<string>("FirstName"),
-                        //    LastName = row.Field<string>("LastName"),
-                        //    Email = row.Field<string>("Email"),
-                        //    Address = row.Field<string>("Address")
-                        //}).ToList();
-                        //dt = ConvertToDataTable(employeeList);
+                    dt = FetchEmployeeDatas();
+                    employeeList = dt.AsEnumerable().Select(row => new EmployeeModel
+                    {
+                        EmployeeId = row.Field<int>("EmployeeId"),
+                        FirstName = row.Field<string>("FirstName"),
+                        LastName = row.Field<string>("LastName"),
+                        Email = row.Field<string>("Email"),
+                        Address = row.Field<string>("Address")
+                    }).ToList();
+                    //dt = ConvertToDataTable(employeeList);
                     //}
                     await Run();
                 }
@@ -127,7 +128,7 @@ namespace csharp_read_write_sheet
                             pageNumber = currentPageNumber;
 
                         }
-                        else if (currentPageNumber > totalPages)
+                        else if (currentPageNumber >= totalPages)
                         {
                             currentPageNumber = totalPages;
                             pageNumber = currentPageNumber;
@@ -213,8 +214,8 @@ namespace csharp_read_write_sheet
                         var importedRows = Client.SheetResources.RowResources.AddRows(sheet.Id.Value, rows);
 
                         RowWrapper rowWrapper = new RowWrapper.InsertRowsBuilder().SetRows(rows).SetToBottom(true).Build();
-
-                       // smartsheet.Sheets().Rows().InsertRows(sheet.Id.Value, rowWrapper);
+                        //var rowwrap= Client.SheetResources()
+                        //smartsheet.Sheets().Rows().InsertRows(sheet.Id.Value, rowWrapper);
                        //sheet.Sheets().Rows().InsertRows(sheet.Id.Value, rowWrapper);
 
                         Logger.LogToConsole($"Imported {rows.Count} rows to {sheet.Name}");
