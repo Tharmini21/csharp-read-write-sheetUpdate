@@ -23,7 +23,7 @@ namespace csharp_read_write_sheet
         private const string Section = "employeecrud";
 
         private int RowsLinked;
-        private int AccountBatchSize=10;
+        private int AccountBatchSize=5;
         public static int Currentpagesize=10;
         public static int currentPageNumber = 1;
         public static int pageNumber = 0;
@@ -44,6 +44,7 @@ namespace csharp_read_write_sheet
                 Logger.RunLogSheet = Client.GetSheet(ConfigSheetId);
                 ConfigManager = new ConfigManager(ConfigSheet);
                 this.InitLogs(this);
+
             }
             catch (Exception e)
             {
@@ -59,8 +60,8 @@ namespace csharp_read_write_sheet
                 //FetchEmployeeDatas();
                // BulkInsertDbDataToSmartSheet();
                 CreateNewEmployeeDatas();
-                UpdateEmployeeDatas();
-                DeleteEmployeeDatas();
+                //UpdateEmployeeDatas();
+               // DeleteEmployeeDatas();
                 Processflag = true;
                 dt = null;
                 employeeList = null;
@@ -119,7 +120,10 @@ namespace csharp_read_write_sheet
                     SqlCommand cmd = new SqlCommand("SELECT COUNT(*) FROM Employee", con);
                     int totalcount = (Int32)cmd.ExecuteScalar();
                     var totalPages = (int)Math.Ceiling((decimal)totalcount / (decimal)Currentpagesize);
+
                     currentPageNumber = currentPageNumber + pageNumber;
+
+
                     if (Processflag == true)
                     {
                         if (currentPageNumber <= 1)
@@ -128,12 +132,23 @@ namespace csharp_read_write_sheet
                             pageNumber = currentPageNumber;
 
                         }
-                        else if (currentPageNumber >= totalPages)
+                       // else if (currentPageNumber <= totalPages)
+                        else if (currentPageNumber > totalPages)
                         {
                             currentPageNumber = totalPages;
                             pageNumber = currentPageNumber;
                         }
+                        else
+                        {
+                            pageNumber = currentPageNumber;
+                        }
                     }
+                    if ((totalPages-1)==currentPageNumber)
+                    {
+                        Processflag = false;
+                        //return data;
+                    }
+            
                     string querySelect = "Select * from Employee ORDER BY EmployeeId Asc OFFSET "+ Currentpagesize + " * "+ pageNumber + " ROWS FETCH NEXT "+ Currentpagesize + " ROWS ONLY";
                     //Currentpagesize = totalcount - Currentpagesize;
                     
@@ -182,6 +197,11 @@ namespace csharp_read_write_sheet
         {
             var sheet = Client.GetSheet(ConfigSheetId);
             //DataTable dt = FetchEmployeeDatas();
+            if(columnMap.Count==0)
+            {
+                foreach (Column column in sheet.Columns)
+                    columnMap.Add(column.Title, (long)column.Id);
+            }
             int targetEmployeeval;
             List<int> sheetEmpIds = new List<int>();
             var accountsToCreate = new List<EmployeeModel>();
@@ -190,10 +210,10 @@ namespace csharp_read_write_sheet
                 targetEmployeeval = Convert.ToInt32(sheet.Rows[i].GetValueForColumnAsString(sheet, ConfigManager.CONFIGURATION_VALUE1_COLUMN));
                 sheetEmpIds.Add(targetEmployeeval);
             }
-            if (dt.Rows.Count != sheet.Rows.Count)
-            {
-                foreach (Column column in sheet.Columns)
-                    columnMap.Add(column.Title, (long)column.Id);
+            //if (dt.Rows.Count != sheet.Rows.Count)
+            //{
+                //foreach (Column column in sheet.Columns)
+                //    columnMap.Add(column.Title, (long)column.Id);
                 foreach (var dbrow in employeeList)
                 {
                     if (!sheetEmpIds.Contains(dbrow.EmployeeId))
@@ -211,10 +231,11 @@ namespace csharp_read_write_sheet
                         var takeCount = intakeRows.Count < AccountBatchSize ? intakeRows.Count : AccountBatchSize;
                         var rows = intakeRows.Take(takeCount).ToList();
 
-                        var importedRows = Client.SheetResources.RowResources.AddRows(sheet.Id.Value, rows);
+                        //var importedRows = Client.SheetResources.RowResources.AddRows(sheet.Id.Value, rows);
 
                         RowWrapper rowWrapper = new RowWrapper.InsertRowsBuilder().SetRows(rows).SetToBottom(true).Build();
-                        //var rowwrap= Client.SheetResources()
+                        //var rowwrap = Client.SheetResources.RowResources.AddRows(sheet.Id.Value, rows);
+                        var rowwrap = Client.SheetResources.RowResources.AddRows(sheet.Id.Value, rows);
                         //smartsheet.Sheets().Rows().InsertRows(sheet.Id.Value, rowWrapper);
                        //sheet.Sheets().Rows().InsertRows(sheet.Id.Value, rowWrapper);
 
@@ -223,7 +244,7 @@ namespace csharp_read_write_sheet
                         intakeRows = intakeRows.Except(rows).ToList();
                     }
                 }
-            }
+            //}
         }
 
         private List<Row> BuildNewIntakeRows(List<EmployeeModel> accounts, Sheet sheet)
