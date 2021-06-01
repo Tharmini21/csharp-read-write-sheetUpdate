@@ -31,6 +31,8 @@ namespace csharp_read_write_sheet
         public static bool Processflag = false;
         public static int totalPages = 0;
         public static int CurrentBatch = 1;
+        List<int> existingRowIds = new List<int>();
+        List<int> newlistRowIds = new List<int>();
         //// IEnumerable<EmployeeModel> employeeList;
         //public static IEnumerable<EmployeeModel> employeeList;
         static Dictionary<string, long> columnMap = new Dictionary<string, long>();
@@ -346,6 +348,18 @@ namespace csharp_read_write_sheet
                 Logger.LogToConsole($"Started Delete rows...");
                 var sheet = Client.GetSheet(ConfigSheetId);
                 var sourceEmployeeIdList = employeeList.Select(x => x.EmployeeId).ToList();
+                existingRowIds = sourceEmployeeIdList.Count != 0 ? sourceEmployeeIdList : null;
+                newlistRowIds = existingRowIds;
+                if (pageNumber != 0)
+                {
+                    existingRowIds = existingRowIds.Concat(sourceEmployeeIdList).ToList();
+                }
+
+                // newlistRowIds=(!sourceEmployeeIdList.Contains(existingRowIds))
+                //newList = newList.Concat(oldList
+                //         .Skip(oldList.ToList().IndexOf(newList.Last() + 1))
+                //         .Take(10))
+                // .ToList();
                 //var accountsToDelete = new List<EmployeeModel>();
                 var accountsToDelete = new List<int>();
                 List<int> sheetEmpIds = new List<int>();
@@ -354,13 +368,24 @@ namespace csharp_read_write_sheet
                     int id = Convert.ToInt32(sheet.Rows[i].GetValueForColumnAsString(sheet, ConfigManager.CONFIGURATION_VALUE1_COLUMN));
                     sheetEmpIds.Add(id);
                 }
-                foreach (var row in sheetEmpIds)
-                {
-                    if (!sourceEmployeeIdList.Contains(row))
-                    {
-                        accountsToDelete.Add(row);
-                    }
-                }
+                //foreach (var row in sheetEmpIds)
+                //{
+                //    if (!sourceEmployeeIdList.Contains(row))
+                //    {
+                //        accountsToDelete.Add(row);
+                //    }
+                //}
+
+               // int[] deleteRowIds = existingRowIds.Except(sheetEmpIds).ToArray();
+                int[] deleteRowIds = sheetEmpIds.Except(sourceEmployeeIdList).ToArray();
+                int[] updatedRowIds = sheetEmpIds.Except(deleteRowIds).ToArray();
+                //int[] updatedRowIdsnew = !sourceEmployeeIdList.Contains(deleteRowIds);
+                //updatedRowIds = deleteRowIds.Except(sourceEmployeeIdList).ToArray();
+                //int[] updatedRowIds = !sheetEmpIds.Contains(deleteRowIds);
+               // Client.SheetResources.RowResources.DeleteRows(sheet.Id.Value, deleteRowIds, true);
+
+                //long[] deleteRowIds = existingRowIds.Except(updatedRowIds).ToArray();
+                //Client.SheetResources.RowResources.DeleteRows(sheet.Id.Value, deleteRowIds, true);
                 //if (accountsToDelete.Any())
                 //{
 
@@ -369,33 +394,35 @@ namespace csharp_read_write_sheet
                 //{
 
                 //}
-
-                //foreach (var row in sheetEmpIds)
+                //if(deleteRowIdsnew.Length>0)
                 //{
-                //    if (!sourceEmployeeIdList.Contains(row))
+                    foreach (var row in updatedRowIds)
+                    {
+                        if (!sourceEmployeeIdList.Contains(row))
+                        {
+                            var rowsUpdated = Client.SheetResources.RowResources.DeleteRows(sheet.Id.Value, new long[] { (long)row }.ToList(), true).Count;
+                            Client.SheetResources.RowResources.DeleteRows(sheet.Id.Value, new long[] { (long)row }.ToList(), true);
+                        }
+                        else
+                            break;
+                    }
+                //}
+
+                //Existing Code//
+                //foreach (var row in sheet.Rows)
+                //{
+                //    int? targetEmployeeId = Convert.ToInt32(row.GetValueForColumnAsString(sheet, ConfigManager.CONFIGURATION_VALUE1_COLUMN));
+                //    if (targetEmployeeId != null)
                 //    {
-                //        var rowsUpdated = Client.SheetResources.RowResources.DeleteRows(sheet.Id.Value, new long[] { (long)row }.ToList(), true).Count;
-                //        Client.SheetResources.RowResources.DeleteRows(sheet.Id.Value, new long[] { (long)row }.ToList(), true);
+                //        if (!sourceEmployeeIdList.Contains(targetEmployeeId.Value))
+                //        {
+                //            var rowsUpdated = Client.SheetResources.RowResources.DeleteRows(sheet.Id.Value, new long[] { (long)row.Id }.ToList(), true).Count;
+                //            Client.SheetResources.RowResources.DeleteRows(sheet.Id.Value, new long[] { (long)row.Id }.ToList(), true);
+                //        }
                 //    }
                 //    else
                 //        break;
                 //}
-
-                //Existing Code//
-                foreach (var row in sheet.Rows)
-                {
-                    int? targetEmployeeId = Convert.ToInt32(row.GetValueForColumnAsString(sheet, ConfigManager.CONFIGURATION_VALUE1_COLUMN));
-                    if (targetEmployeeId != null)
-                    {
-                        if (!sourceEmployeeIdList.Contains(targetEmployeeId.Value))
-                        {
-                            var rowsUpdated = Client.SheetResources.RowResources.DeleteRows(sheet.Id.Value, new long[] { (long)row.Id }.ToList(), true).Count;
-                            Client.SheetResources.RowResources.DeleteRows(sheet.Id.Value, new long[] { (long)row.Id }.ToList(), true);
-                        }
-                    }
-                    else
-                        break;
-                }
                 Logger.LogToConsole($"delete employee data's completed...");
             }
             catch (Exception ex)
