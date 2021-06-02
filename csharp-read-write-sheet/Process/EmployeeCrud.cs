@@ -348,9 +348,12 @@ namespace csharp_read_write_sheet
                 Logger.LogToConsole($"Started Delete rows...");
                 var sheet = Client.GetSheet(ConfigSheetId);
                 var sourceEmployeeIdList = employeeList.Select(x => x.EmployeeId).ToList();
-                existingRowIds = sourceEmployeeIdList.Count != 0 ? sourceEmployeeIdList : null;
-                newlistRowIds = existingRowIds;
-                if (pageNumber != 0)
+               // newlistRowIds = existingRowIds;
+                if (pageNumber == 0)
+                {
+                    existingRowIds = sourceEmployeeIdList.Count != 0 ? sourceEmployeeIdList : null;
+                }
+                else
                 {
                     existingRowIds = existingRowIds.Concat(sourceEmployeeIdList).ToList();
                 }
@@ -360,7 +363,7 @@ namespace csharp_read_write_sheet
                 //         .Skip(oldList.ToList().IndexOf(newList.Last() + 1))
                 //         .Take(10))
                 // .ToList();
-                //var accountsToDelete = new List<EmployeeModel>();
+               // var accountsToDelete = new List<EmployeeModel>();
                 var accountsToDelete = new List<int>();
                 List<int> sheetEmpIds = new List<int>();
                 for (int i = 0; i < sheet.Rows.Count; i++)
@@ -368,6 +371,9 @@ namespace csharp_read_write_sheet
                     int id = Convert.ToInt32(sheet.Rows[i].GetValueForColumnAsString(sheet, ConfigManager.CONFIGURATION_VALUE1_COLUMN));
                     sheetEmpIds.Add(id);
                 }
+                sheetEmpIds = sheetEmpIds.Skip(10).Take(10).ToList();
+
+               // sheetEmpIds != 0 ? new { Items = sheetEmpIds.Skip(pageNumber).Take(10).ToList(), Count = sheetEmpIds.Count() } : new { Items = sheetEmpIds, Count = list.Count() };
                 //foreach (var row in sheetEmpIds)
                 //{
                 //    if (!sourceEmployeeIdList.Contains(row))
@@ -375,14 +381,21 @@ namespace csharp_read_write_sheet
                 //        accountsToDelete.Add(row);
                 //    }
                 //}
+                foreach (var dbrow in existingRowIds)
+                {
+                    
+                    if (!sheetEmpIds.Contains(dbrow))
+                    {
+                        accountsToDelete.Add(dbrow);
+                    }
+                }
 
-               // int[] deleteRowIds = existingRowIds.Except(sheetEmpIds).ToArray();
-                int[] deleteRowIds = sheetEmpIds.Except(sourceEmployeeIdList).ToArray();
-                int[] updatedRowIds = sheetEmpIds.Except(deleteRowIds).ToArray();
+                int[] deleteRowIds = sheetEmpIds.Except(existingRowIds).ToArray();
+                //int[] updatedRowIds = sheetEmpIds.Except(deleteRowIds).ToArray();
                 //int[] updatedRowIdsnew = !sourceEmployeeIdList.Contains(deleteRowIds);
                 //updatedRowIds = deleteRowIds.Except(sourceEmployeeIdList).ToArray();
                 //int[] updatedRowIds = !sheetEmpIds.Contains(deleteRowIds);
-               // Client.SheetResources.RowResources.DeleteRows(sheet.Id.Value, deleteRowIds, true);
+                // Client.SheetResources.RowResources.DeleteRows(sheet.Id.Value, deleteRowIds, true);
 
                 //long[] deleteRowIds = existingRowIds.Except(updatedRowIds).ToArray();
                 //Client.SheetResources.RowResources.DeleteRows(sheet.Id.Value, deleteRowIds, true);
@@ -396,7 +409,9 @@ namespace csharp_read_write_sheet
                 //}
                 //if(deleteRowIdsnew.Length>0)
                 //{
-                    foreach (var row in updatedRowIds)
+               // int[] deleteRowIds = sheetEmpIds.Except(sourceEmployeeIdList).ToArray();
+
+                foreach (var row in sheetEmpIds)
                     {
                         if (!sourceEmployeeIdList.Contains(row))
                         {
