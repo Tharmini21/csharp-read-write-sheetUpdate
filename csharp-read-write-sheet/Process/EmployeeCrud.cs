@@ -16,25 +16,25 @@ using System.Threading.Tasks;
 
 namespace csharp_read_write_sheet
 {
-    public class EmployeeCrud:SheetConfiguration
+    public class EmployeeCrud : SheetConfiguration
     {
         static string connectionString = ConfigurationManager.ConnectionStrings["myConnectionString"].ConnectionString;
         private const string Process = "Employee Crud";
         private const string Section = "employeecrud";
 
         private int RowsLinked;
-        private int AccountBatchSize=5;
-        public static int Currentpagesize=10;
+        private int AccountBatchSize = 5;
+        public static int Currentpagesize = 10;
         public static int currentPageNumber = 1;
         public static int pageNumber = 0;
-       // public static DataTable dt;
+        // public static DataTable dt;
         public static bool Processflag = false;
         public static int totalPages = 0;
         public static int CurrentBatch = 1;
         List<int> existingRowIds = new List<int>();
         List<int> newlistRowIds = new List<int>();
         static Dictionary<string, long> columnMap = new Dictionary<string, long>();
-      
+
         public EmployeeCrud()
         {
             try
@@ -64,7 +64,7 @@ namespace csharp_read_write_sheet
                 UpdateEmployeeDatas();
                 DeleteEmployeeDatas();
 
-                if ((totalPages-1) == currentPageNumber)
+                if ((totalPages - 1) == currentPageNumber)
                 {
                     Processflag = false;
                 }
@@ -140,8 +140,7 @@ namespace csharp_read_write_sheet
                             pageNumber = currentPageNumber;
                         }
                     }
-                    string querySelect = "Select * from Employee ORDER BY EmployeeId Asc OFFSET "+ Currentpagesize + " * "+ pageNumber + " ROWS FETCH NEXT "+ Currentpagesize + " ROWS ONLY";
-                   // string querySelect = "Select * from Employee";
+                    string querySelect = "Select * from Employee ORDER BY EmployeeId Asc OFFSET " + Currentpagesize + " * " + pageNumber + " ROWS FETCH NEXT " + Currentpagesize + " ROWS ONLY";
                     SqlDataAdapter dataAdapter = new SqlDataAdapter(querySelect, con);
                     dataAdapter.Fill(data);
                 }
@@ -155,7 +154,7 @@ namespace csharp_read_write_sheet
             return data;
         }
 
-        
+
         static IEnumerable<EmployeeModel> employeeList = FetchEmployeeDatas().AsEnumerable().Select(row => new EmployeeModel
         {
             EmployeeId = row.Field<int>("EmployeeId"),
@@ -184,25 +183,22 @@ namespace csharp_read_write_sheet
 
         public void CreateNewEmployeeDatas()
         {
-            var sheet = Client.GetSheet(ConfigSheetId);
-            //DataTable dt = FetchEmployeeDatas();
-            if(columnMap.Count==0)
-            {
-                foreach (Column column in sheet.Columns)
-                    columnMap.Add(column.Title, (long)column.Id);
-            }
             int targetEmployeeval;
             List<int> sheetEmpIds = new List<int>();
             var accountsToCreate = new List<EmployeeModel>();
-            for (int i = 0; i < sheet.Rows.Count; i++)
+            try
             {
-                targetEmployeeval = Convert.ToInt32(sheet.Rows[i].GetValueForColumnAsString(sheet, ConfigManager.CONFIGURATION_VALUE1_COLUMN));
-                sheetEmpIds.Add(targetEmployeeval);
-            }
-            //if (dt.Rows.Count != sheet.Rows.Count)
-            //{
-                //foreach (Column column in sheet.Columns)
-                //    columnMap.Add(column.Title, (long)column.Id);
+                var sheet = Client.GetSheet(ConfigSheetId);
+                if (columnMap.Count == 0)
+                {
+                    foreach (Column column in sheet.Columns)
+                        columnMap.Add(column.Title, (long)column.Id);
+                }
+                for (int i = 0; i < sheet.Rows.Count; i++)
+                {
+                    targetEmployeeval = Convert.ToInt32(sheet.Rows[i].GetValueForColumnAsString(sheet, ConfigManager.CONFIGURATION_VALUE1_COLUMN));
+                    sheetEmpIds.Add(targetEmployeeval);
+                }
                 foreach (var dbrow in employeeList)
                 {
                     if (!sheetEmpIds.Contains(dbrow.EmployeeId))
@@ -210,17 +206,16 @@ namespace csharp_read_write_sheet
                         accountsToCreate.Add(dbrow);
                     }
                 }
-
                 if (accountsToCreate.Any())
                 {
                     var intakeRows = BuildNewIntakeRows(accountsToCreate, sheet);
 
                     while (intakeRows.Any())
                     {
-                    Logger.LogToConsole($"Batch Running StartTime: {DateTime.UtcNow}");
-                    Logger.LogToConsole($"Currently Running Batch Number :"+CurrentBatch);
+                        Logger.LogToConsole($"Batch Number " + CurrentBatch + " Running StartTime: {DateTime.UtcNow}");
+                        Logger.LogToConsole($"Currently Running Batch Number :" + CurrentBatch);
 
-                    var takeCount = intakeRows.Count < AccountBatchSize ? intakeRows.Count : AccountBatchSize;
+                        var takeCount = intakeRows.Count < AccountBatchSize ? intakeRows.Count : AccountBatchSize;
                         var rows = intakeRows.Take(takeCount).ToList();
 
                         //var importedRows = Client.SheetResources.RowResources.AddRows(sheet.Id.Value, rows);
@@ -229,7 +224,7 @@ namespace csharp_read_write_sheet
                         //var rowwrap = Client.SheetResources.RowResources.AddRows(sheet.Id.Value, rows);
                         var rowwrap = Client.SheetResources.RowResources.AddRows(sheet.Id.Value, rows);
                         //smartsheet.Sheets().Rows().InsertRows(sheet.Id.Value, rowWrapper);
-                       //sheet.Sheets().Rows().InsertRows(sheet.Id.Value, rowWrapper);
+                        //sheet.Sheets().Rows().InsertRows(sheet.Id.Value, rowWrapper);
 
                         Logger.LogToConsole($"Imported {rows.Count} rows to {sheet.Name}");
 
@@ -237,8 +232,16 @@ namespace csharp_read_write_sheet
                         CurrentBatch++;
 
                     }
+                    Logger.LogToConsole($"Batch Number " + CurrentBatch + " Running EndTime: {DateTime.UtcNow}");
+                }
             }
-            //}
+            catch(Exception ex)
+            {
+                var message = $"Failed to Upload Batch Number "+CurrentBatch+" Data: {ex.Message}";
+                Logger.LogException(ex, message);
+                throw new ApplicationException(message, ex);
+            }
+           
         }
         private List<Row> BuildNewIntakeRows(List<EmployeeModel> accounts, Sheet sheet)
         {
@@ -271,7 +274,7 @@ namespace csharp_read_write_sheet
                     var FirstNameColumnId = sheet.GetColumnByTitle(ConfigManager.CONFIGURATION_VALUE2_COLUMN, false)?.Id;
                     var LastNameColumnId = sheet.GetColumnByTitle(ConfigManager.CONFIGURATION_VALUE3_COLUMN, false)?.Id;
                     var EmailColumnId = sheet.GetColumnByTitle(ConfigManager.CONFIGURATION_VALUE4_COLUMN, false)?.Id;
-                    var AddressColumnId = sheet.GetColumnByTitle(ConfigManager.CONFIGURATION_VALUE5_COLUMN,false)?.Id;
+                    var AddressColumnId = sheet.GetColumnByTitle(ConfigManager.CONFIGURATION_VALUE5_COLUMN, false)?.Id;
 
                     rows.Add(new Row
                     {
@@ -302,7 +305,7 @@ namespace csharp_read_write_sheet
                             }
                     });
                 }
-                var rowsUpdated = Client.SheetResources.RowResources.UpdateRows(sheet.Id.Value,rows).Count;
+                var rowsUpdated = Client.SheetResources.RowResources.UpdateRows(sheet.Id.Value, rows).Count;
 
                 //Row rowA = new Row.UpdateRowBuilder().setCells(cellsB).setRowId(rowId).build();
                 //List<Row> updatedRows = smartsheet.sheetResources().rowResources().updateRows(sheet.Id.Value, Arrays.asList(rows));
@@ -315,7 +318,7 @@ namespace csharp_read_write_sheet
                 Logger.LogException(ex, message);
                 throw new ApplicationException(message, ex);
             }
-          
+
         }
         public void DeleteEmployeeDatas()
         {
@@ -342,7 +345,7 @@ namespace csharp_read_write_sheet
                     int id = Convert.ToInt32(sheet.Rows[i].GetValueForColumnAsString(sheet, ConfigManager.CONFIGURATION_VALUE1_COLUMN));
                     long columId = Convert.ToInt64(sheet.Rows[i].Id);
                     sheetEmpIds.Add(id);
-                    sheetEmpIdDic.Add(id,columId);
+                    sheetEmpIdDic.Add(id, columId);
                 }
                 int skip = (pageNumber * Currentpagesize);
                 if (pageNumber == 0)
@@ -361,7 +364,7 @@ namespace csharp_read_write_sheet
                     {
                         if (sheetEmpIdDic.ContainsKey(row))
                         {
-                            long smartcellId =Convert.ToInt64(sheetEmpIdDic[row]);
+                            long smartcellId = Convert.ToInt64(sheetEmpIdDic[row]);
                             var rowsUpdated = Client.SheetResources.RowResources.DeleteRows(sheet.Id.Value, new long[] { smartcellId }.ToList(), true).Count;
                         }
                     }
@@ -396,7 +399,7 @@ namespace csharp_read_write_sheet
             //DataTable dt = FetchEmployeeDatas();
             try
             {
-                if (sheet.Rows.Count==0 && (dt.Rows.Count != sheet.Rows.Count))
+                if (sheet.Rows.Count == 0 && (dt.Rows.Count != sheet.Rows.Count))
                 {
                     foreach (Column column in sheet.Columns)
                         columnMap.Add(column.Title, (long)column.Id);
@@ -421,7 +424,7 @@ namespace csharp_read_write_sheet
                     Logger.LogToConsole($"Bulk Insert completed...");
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 var message = $"Failed to Insert BulkInsert Rows: {ex.Message}";
                 Logger.LogException(ex, message);
@@ -450,8 +453,8 @@ namespace csharp_read_write_sheet
             var startdate = StartTime.ToString(CultureInfo.InvariantCulture);
             var enddate = DateTime.Now.ToString(CultureInfo.InvariantCulture);
             var notes = $"{Process} complete. rows imported: {RowsLinked}";
-           // Logger.LogJobRun(startdate, enddate, notes, false);
-          
+            // Logger.LogJobRun(startdate, enddate, notes, false);
+
         }
     }
 }
